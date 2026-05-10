@@ -1,11 +1,14 @@
 package com.example.api_etudiant_departement.entity;
 
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import java.time.LocalDate;
+import java.time.Period;
 
 @Entity
-@Data
+@Getter
+@Setter
 public class Etudiant {
 
     @Id
@@ -15,4 +18,14 @@ public class Etudiant {
     private String cin;
     private String nom;
     private LocalDate dateNaissance;
+    private String email;
+    private int anneePremiereInscription;
+
+    @ManyToOne
+    @JoinColumn(name = "departement_id")
+    private Departement departement;
+
+    public int age() {
+        return Period.between(this.dateNaissance, LocalDate.now()).getYears();
+    }
 }

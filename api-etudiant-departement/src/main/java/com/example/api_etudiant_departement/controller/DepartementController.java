@@ -1,39 +1,37 @@
 package com.example.api_etudiant_departement.controller;
 
-import com.example.api_etudiant_departement.dto.EtudiantDTO;
-import com.example.api_etudiant_departement.service.EtudiantService;
+import com.example.api_etudiant_departement.dto.DepartementDTO;
+import com.example.api_etudiant_departement.service.DepartementService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/etudiants")
+@RequestMapping("/api/departements")
 @CrossOrigin(origins = "*")
 @RequiredArgsConstructor
-public class EtudiantController {
+public class DepartementController {
 
-    private final EtudiantService service;
+    private final DepartementService service;
 
     @GetMapping
-    public List<EtudiantDTO> getAll(
-            @RequestParam(required = false) Integer annee) {
-        if (annee != null) return service.findByAnnee(annee);
+    public List<DepartementDTO> getAll() {
         return service.findAll();
     }
 
     @GetMapping("/{id}")
-    public EtudiantDTO getById(@PathVariable Long id) {
+    public DepartementDTO getById(@PathVariable Long id) {
         return service.findById(id);
     }
 
     @PostMapping
-    public ResponseEntity<EtudiantDTO> create(@RequestBody EtudiantDTO dto) {
+    public ResponseEntity<DepartementDTO> create(@RequestBody DepartementDTO dto) {
         return ResponseEntity.status(201).body(service.save(dto));
     }
 
     @PutMapping("/{id}")
-    public EtudiantDTO update(@PathVariable Long id, @RequestBody EtudiantDTO dto) {
+    public DepartementDTO update(@PathVariable Long id, @RequestBody DepartementDTO dto) {
         return service.update(id, dto);
     }
 

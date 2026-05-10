@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: etudiant-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: etudiant-api
+  template:
+    metadata:
+      labels:
+        app: etudiant-api
+    spec:
+      containers:
+        - name: etudiant-api
+          image: omelkir/etudiant-service:1.0
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8080
+          env:
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://db:5432/etudiants_db
+            - name: SPRING_DATASOURCE_USERNAME
+              value: postgres
+            - name: SPRING_DATASOURCE_PASSWORD
+              value: postgres
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: etudiant-service
+spec:
+  type: NodePort
+  selector:
+    app: etudiant-api
+  ports:
+    - port: 8080
+      targetPort: 8080
+      nodePort: 30080

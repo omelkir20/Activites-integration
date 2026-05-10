@@ -2,64 +2,427 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Liste des Étudiants</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestion Étudiants & Départements</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }
-        h1 { color: #333; }
-        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-        th { background: #4a90e2; color: white; padding: 12px 16px; text-align: left; }
-        td { padding: 12px 16px; border-bottom: 1px solid #eee; }
-        tr:last-child td { border-bottom: none; }
-        tr:hover td { background: #f0f7ff; }
-        #message { color: red; }
+        :root {
+          --bg: #0f1117;
+          --surface: #1a1d27;
+          --surface2: #242838;
+          --accent: #6c63ff;
+          --text: #e8eaf6;
+          --muted: #8b90a7;
+          --border: #2e3347;
+          --success: #4caf98;
+          --danger: #e05c6e;
+          --radius: 12px;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+
+        nav {
+          display: flex; align-items: center;
+          background: var(--surface);
+          border-bottom: 1px solid var(--border);
+          padding: 0 32px;
+          position: sticky; top: 0; z-index: 100;
+        }
+        .nav-brand {
+          font-family: 'Syne', sans-serif; font-size: 1.2rem; font-weight: 800;
+          color: var(--accent); margin-right: 40px; white-space: nowrap;
+        }
+        .nav-tab {
+          padding: 18px 20px; cursor: pointer; font-weight: 500; font-size: 0.9rem;
+          color: var(--muted); border-bottom: 3px solid transparent; transition: all 0.2s;
+        }
+        .nav-tab:hover { color: var(--text); }
+        .nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+        .page { display: none; padding: 36px 40px; }
+        .page.active { display: block; }
+        .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 28px; }
+        .page-title { font-family: 'Syne', sans-serif; font-size: 1.6rem; font-weight: 800; }
+
+        .btn {
+          display: inline-flex; align-items: center; gap: 6px;
+          padding: 10px 20px; border: none; border-radius: 8px;
+          font-family: inherit; font-size: 0.88rem; font-weight: 600;
+          cursor: pointer; transition: all 0.18s;
+        }
+        .btn-primary { background: var(--accent); color: #fff; }
+        .btn-primary:hover { background: #7b74ff; transform: translateY(-1px); }
+        .btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--danger); padding: 6px 12px; font-size: 0.8rem; }
+        .btn-danger:hover { background: var(--danger); color: #fff; }
+        .btn-edit { background: transparent; color: var(--accent); border: 1px solid var(--accent); padding: 6px 12px; font-size: 0.8rem; }
+        .btn-edit:hover { background: var(--accent); color: #fff; }
+        .btn-cancel { background: var(--surface2); color: var(--muted); border: none; }
+        .btn-cancel:hover { color: var(--text); }
+
+        .table-wrap { background: var(--surface); border-radius: var(--radius); border: 1px solid var(--border); overflow: hidden; }
+        table { width: 100%; border-collapse: collapse; }
+        thead tr { background: var(--surface2); }
+        th { padding: 14px 18px; text-align: left; font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); }
+        td { padding: 14px 18px; font-size: 0.9rem; border-top: 1px solid var(--border); vertical-align: middle; }
+        tr:hover td { background: rgba(108,99,255,0.05); }
+        .actions { display: flex; gap: 8px; }
+
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; background: rgba(108,99,255,0.15); color: var(--accent); }
+        .empty { text-align: center; padding: 48px; color: var(--muted); font-size: 0.9rem; }
+
+        .filter-bar { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+        .filter-bar input, .filter-bar select { background: var(--surface); border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 9px 14px; font-family: inherit; font-size: 0.88rem; min-width: 180px; }
+        .filter-bar input:focus, .filter-bar select:focus { outline: none; border-color: var(--accent); }
+
+        .overlay {
+          display: none; position: fixed; inset: 0;
+          background: rgba(0,0,0,0.65); backdrop-filter: blur(4px);
+          z-index: 200; align-items: center; justify-content: center;
+        }
+        .overlay.open { display: flex; }
+        .modal {
+          background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+          padding: 32px; width: 100%; max-width: 480px;
+          animation: slideUp 0.25s ease;
+        }
+        @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .modal-title { font-family: 'Syne', sans-serif; font-size: 1.2rem; font-weight: 800; margin-bottom: 24px; }
+        .form-group { margin-bottom: 18px; }
+        label { display: block; font-size: 0.82rem; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+        .form-group input, .form-group select {
+          width: 100%; background: var(--surface2); border: 1px solid var(--border);
+          border-radius: 8px; color: var(--text); font-family: inherit; font-size: 0.9rem; padding: 10px 14px;
+          transition: border-color 0.2s;
+        }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: var(--accent); }
+        .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 24px; }
+
+        #toast {
+          position: fixed; bottom: 28px; right: 28px;
+          background: var(--success); color: #fff;
+          padding: 12px 22px; border-radius: 10px;
+          font-size: 0.88rem; font-weight: 600;
+          transform: translateY(80px); opacity: 0;
+          transition: all 0.3s; z-index: 999;
+        }
+        #toast.show { transform: translateY(0); opacity: 1; }
+        #toast.error { background: var(--danger); }
     </style>
 </head>
 <body>
-<h1>Liste des Étudiants</h1>
-<p id="message"></p>
-<table id="tableau" style="display:none">
-    <thead>
-    <tr>
-        <th>ID</th>
-        <th>CIN</th>
-        <th>Nom</th>
-        <th>Date de naissance</th>
-    </tr>
-    </thead>
-    <tbody id="corps"></tbody>
-</table>
+
+<nav>
+    <div class="nav-brand">🎓 UniManager</div>
+    <div class="nav-tab active" onclick="showPage('etudiants', this)">Étudiants</div>
+    <div class="nav-tab" onclick="showPage('departements', this)">Départements</div>
+</nav>
+
+<!-- PAGE ÉTUDIANTS -->
+<div class="page active" id="page-etudiants">
+    <div class="page-header">
+        <div class="page-title">Étudiants</div>
+        <button class="btn btn-primary" onclick="openEtudiantModal()">＋ Ajouter</button>
+    </div>
+    <div class="filter-bar">
+        <input id="searchEtudiant" type="text" placeholder="🔍 Rechercher par nom ou CIN…" oninput="renderEtudiants()">
+        <select id="filtreDept" onchange="renderEtudiants()">
+            <option value="">Tous les départements</option>
+        </select>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <!-- FIX : ajout colonne Email, remplacement "Année" par "Année inscription" -->
+            <thead><tr><th>ID</th><th>CIN</th><th>Nom</th><th>Date naissance</th><th>Email</th><th>Année inscription</th><th>Département</th><th>Actions</th></tr></thead>
+            <tbody id="corps-etudiants"><tr><td colspan="8" class="empty">Chargement…</td></tr></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- PAGE DÉPARTEMENTS -->
+<div class="page" id="page-departements">
+    <div class="page-header">
+        <div class="page-title">Départements</div>
+        <button class="btn btn-primary" onclick="openDeptModal()">＋ Ajouter</button>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <thead><tr><th>ID</th><th>Nom</th><th>Nb étudiants</th><th>Actions</th></tr></thead>
+            <tbody id="corps-departements"><tr><td colspan="4" class="empty">Chargement…</td></tr></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- MODAL ÉTUDIANT -->
+<div class="overlay" id="overlay-etudiant">
+    <div class="modal">
+        <div class="modal-title" id="etudiant-modal-title">Nouvel étudiant</div>
+        <input type="hidden" id="etudiant-id">
+        <div class="form-group"><label>CIN</label><input id="etudiant-cin" type="text" placeholder="Ex: 12345678"></div>
+        <div class="form-group"><label>Nom complet</label><input id="etudiant-nom" type="text" placeholder="Prénom Nom"></div>
+        <div class="form-group"><label>Date de naissance</label><input id="etudiant-date" type="date"></div>
+        <!-- FIX : champ email ajouté (manquait dans le formulaire) -->
+        <div class="form-group"><label>Email</label><input id="etudiant-email" type="email" placeholder="ex@mail.com"></div>
+        <!-- FIX : anneePremiereInscription = vraie année (ex: 2021), pas 1/2/3 -->
+        <div class="form-group"><label>Année première inscription</label><input id="etudiant-annee" type="number" min="2000" max="2099" placeholder="Ex: 2022"></div>
+        <div class="form-group">
+            <label>Département</label>
+            <select id="etudiant-departement"><option value="">— Aucun —</option></select>
+        </div>
+        <div class="modal-actions">
+            <button class="btn btn-cancel" onclick="closeModal('overlay-etudiant')">Annuler</button>
+            <button class="btn btn-primary" onclick="saveEtudiant()">Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<!-- MODAL DÉPARTEMENT -->
+<div class="overlay" id="overlay-dept">
+    <div class="modal">
+        <div class="modal-title" id="dept-modal-title">Nouveau département</div>
+        <input type="hidden" id="dept-id">
+        <div class="form-group"><label>Nom du département</label><input id="dept-nom" type="text" placeholder="Ex: Informatique"></div>
+        <div class="modal-actions">
+            <button class="btn btn-cancel" onclick="closeModal('overlay-dept')">Annuler</button>
+            <button class="btn btn-primary" onclick="saveDept()">Enregistrer</button>
+        </div>
+    </div>
+</div>
+
+<div id="toast"></div>
 
 <script>
-    fetch('/api/etudiants')
-        .then(res => {
-            if (!res.ok) throw new Error('Erreur réseau');
-            return res.json();
-        })
-        .then(data => {
-            const corps = document.getElementById('corps');
-            const tableau = document.getElementById('tableau');
+    // FIX : constante API propre — plus de duplication dans chaque fetch
+    const API = 'http://localhost:8080';
+    let etudiants = [];
+    let departements = [];
 
-            if (data.length === 0) {
-                document.getElementById('message').textContent = 'Aucun étudiant trouvé.';
-                return;
-            }
+    function showPage(name, el) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+      document.getElementById('page-' + name).classList.add('active');
+      el.classList.add('active');
+    }
 
-            data.forEach(e => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${e.id}</td>
-                    <td>${e.cin}</td>
-                    <td>${e.nom}</td>
-                    <td>${e.dateNaissance}</td>
-                `;
-                corps.appendChild(tr);
-            });
+    function toast(msg, isError = false) {
+      const t = document.getElementById('toast');
+      t.textContent = msg;
+      t.className = 'show' + (isError ? ' error' : '');
+      setTimeout(() => t.className = '', 3000);
+    }
 
-            tableau.style.display = 'table';
-        })
-        .catch(err => {
-            document.getElementById('message').textContent = 'Erreur : ' + err.message;
+    function openModal(id) { document.getElementById(id).classList.add('open'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+    document.querySelectorAll('.overlay').forEach(ov => {
+      ov.addEventListener('click', e => { if (e.target === ov) ov.classList.remove('open'); });
+    });
+
+    // ── ÉTUDIANTS ──
+
+    async function loadEtudiants() {
+      try {
+        // FIX : utilisation de la constante API
+        const res = await fetch(API + '/api/etudiants');
+        if (!res.ok) throw new Error('Erreur réseau');
+        etudiants = await res.json();
+        renderEtudiants();
+      } catch (e) {
+        document.getElementById('corps-etudiants').innerHTML =
+          `<tr><td colspan="8" class="empty">Erreur : ${e.message}</td></tr>`;
+      }
+    }
+
+    function renderEtudiants() {
+      const search = document.getElementById('searchEtudiant').value.toLowerCase();
+      const deptId = document.getElementById('filtreDept').value;
+      const tbody  = document.getElementById('corps-etudiants');
+
+      const list = etudiants.filter(e => {
+        const ms = !search || e.nom?.toLowerCase().includes(search) || e.cin?.toLowerCase().includes(search);
+        // FIX : filtre par département uniquement (anneePremiereInscription est une année réelle, pas 1/2/3)
+        const md = !deptId || String(e.departementId) === deptId;
+        return ms && md;
+      });
+
+      if (!list.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty">Aucun étudiant trouvé.</td></tr>'; return; }
+
+      tbody.innerHTML = list.map(e => {
+        return `<tr>
+          <td>${e.id}</td>
+          <td>${e.cin ?? '—'}</td>
+          <td><strong>${e.nom}</strong></td>
+          <td>${e.dateNaissance ?? '—'}</td>
+          <td>${e.email ?? '—'}</td>
+          <!-- FIX : affichage de anneePremiereInscription (ex: 2021) au lieu de e.annee (undefined) -->
+          <td>${e.anneePremiereInscription ? '<span class="badge">' + e.anneePremiereInscription + '</span>' : '—'}</td>
+          <td>${e.departementNom ?? '—'}</td>
+          <td><div class="actions">
+            <button class="btn btn-edit" onclick="editEtudiant(${e.id})">✏️</button>
+            <button class="btn btn-danger" onclick="deleteEtudiant(${e.id})">🗑️</button>
+          </div></td>
+        </tr>`;
+      }).join('');
+    }
+
+    function populateDeptSelects() {
+      const sel = document.getElementById('etudiant-departement');
+      const cur = sel.value;
+      sel.innerHTML = '<option value="">— Aucun —</option>' +
+        departements.map(d => `<option value="${d.id}">${d.nom}</option>`).join('');
+      if (cur) sel.value = cur;
+
+      const fsel = document.getElementById('filtreDept');
+      const fcur = fsel.value;
+      fsel.innerHTML = '<option value="">Tous les départements</option>' +
+        departements.map(d => `<option value="${d.id}">${d.nom}</option>`).join('');
+      if (fcur) fsel.value = fcur;
+    }
+
+    function openEtudiantModal(e = null) {
+      document.getElementById('etudiant-modal-title').textContent = e ? 'Modifier étudiant' : 'Nouvel étudiant';
+      document.getElementById('etudiant-id').value      = e?.id ?? '';
+      document.getElementById('etudiant-cin').value     = e?.cin ?? '';
+      document.getElementById('etudiant-nom').value     = e?.nom ?? '';
+      document.getElementById('etudiant-date').value    = e?.dateNaissance ?? '';
+      // FIX : email et anneePremiereInscription
+      document.getElementById('etudiant-email').value   = e?.email ?? '';
+      document.getElementById('etudiant-annee').value   = e?.anneePremiereInscription ?? new Date().getFullYear();
+      populateDeptSelects();
+      document.getElementById('etudiant-departement').value = e?.departementId ?? '';
+      openModal('overlay-etudiant');
+    }
+
+    function editEtudiant(id) { openEtudiantModal(etudiants.find(e => e.id === id)); }
+
+    async function saveEtudiant() {
+      const id = document.getElementById('etudiant-id').value;
+      const deptVal = document.getElementById('etudiant-departement').value;
+
+      // FIX : body avec les bons noms de champs du DTO backend
+      const body = {
+        cin:  document.getElementById('etudiant-cin').value.trim(),
+        nom:  document.getElementById('etudiant-nom').value.trim(),
+        dateNaissance: document.getElementById('etudiant-date').value,
+        email: document.getElementById('etudiant-email').value.trim(),
+        anneePremiereInscription: parseInt(document.getElementById('etudiant-annee').value),
+        departementId: deptVal && deptVal !== '' ? parseInt(deptVal) : null,
+      };
+
+      if (!body.nom || !body.cin) {
+        toast('Nom et CIN sont requis.', true);
+        return;
+      }
+
+      try {
+        // FIX : URL avec la constante API
+        const url = API + '/api/etudiants' + (id ? '/' + id : '');
+        const method = id ? 'PUT' : 'POST';
+        const res = await fetch(url, {
+          method: method,
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
         });
+        if (!res.ok) {
+          const errorText = await res.text();
+          throw new Error(`Erreur serveur: ${res.status} — ${errorText}`);
+        }
+        closeModal('overlay-etudiant');
+        toast(id ? 'Étudiant mis à jour ✓' : 'Étudiant créé ✓');
+        await loadEtudiants();
+      } catch (e) {
+        toast(e.message, true);
+      }
+    }
+
+    async function deleteEtudiant(id) {
+      if (!confirm('Supprimer cet étudiant ?')) return;
+      try {
+        // FIX : URL avec la constante API
+        const res = await fetch(API + '/api/etudiants/' + id, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Erreur serveur');
+        toast('Étudiant supprimé');
+        await loadEtudiants();
+      } catch (e) { toast(e.message, true); }
+    }
+
+    // ── DÉPARTEMENTS ──
+
+    async function loadDepartements() {
+      try {
+        // FIX : URL avec la constante API
+        const res = await fetch(API + '/api/departements');
+        if (!res.ok) throw new Error('Erreur réseau');
+        departements = await res.json();
+        renderDepartements();
+        populateDeptSelects();
+      } catch (e) {
+        document.getElementById('corps-departements').innerHTML =
+          `<tr><td colspan="4" class="empty">Erreur : ${e.message}</td></tr>`;
+      }
+    }
+
+    function renderDepartements() {
+      const tbody = document.getElementById('corps-departements');
+      if (!departements.length) { tbody.innerHTML = '<tr><td colspan="4" class="empty">Aucun département.</td></tr>'; return; }
+      tbody.innerHTML = departements.map(d => {
+        const count = etudiants.filter(e => e.departementId === d.id).length;
+        return `<tr>
+          <td>${d.id}</td>
+          <td><strong>${d.nom}</strong></td>
+          <td>${count}</td>
+          <td><div class="actions">
+            <button class="btn btn-edit" onclick="editDept(${d.id})">✏️</button>
+            <button class="btn btn-danger" onclick="deleteDept(${d.id})">🗑️</button>
+          </div></td>
+        </tr>`;
+      }).join('');
+    }
+
+    function openDeptModal(d = null) {
+      document.getElementById('dept-modal-title').textContent = d ? 'Modifier département' : 'Nouveau département';
+      document.getElementById('dept-id').value  = d?.id ?? '';
+      document.getElementById('dept-nom').value = d?.nom ?? '';
+      openModal('overlay-dept');
+    }
+
+    function editDept(id) { openDeptModal(departements.find(d => d.id === id)); }
+
+    async function saveDept() {
+      const id   = document.getElementById('dept-id').value;
+      const body = { nom: document.getElementById('dept-nom').value.trim() };
+      if (!body.nom) { toast('Le nom est requis.', true); return; }
+      try {
+        // FIX : URL avec la constante API
+        const res = await fetch(API + '/api/departements' + (id ? '/' + id : ''), {
+          method: id ? 'PUT' : 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) throw new Error('Erreur serveur');
+        closeModal('overlay-dept');
+        toast(id ? 'Département mis à jour ✓' : 'Département créé ✓');
+        await loadDepartements();
+        renderEtudiants();
+      } catch (e) { toast(e.message, true); }
+    }
+
+    async function deleteDept(id) {
+      if (!confirm('Supprimer ce département ?')) return;
+      try {
+        // FIX : URL avec la constante API
+        const res = await fetch(API + '/api/departements/' + id, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Erreur serveur');
+        toast('Département supprimé');
+        await loadDepartements();
+        renderEtudiants();
+      } catch (e) { toast(e.message, true); }
+    }
+
+    // ── INIT ──
+    (async () => {
+      await loadDepartements();
+      await loadEtudiants();
+    })();
 </script>
 </body>
 </html>

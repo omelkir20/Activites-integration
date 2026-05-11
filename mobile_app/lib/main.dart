@@ -175,8 +175,11 @@ class _EtudiantsPageState extends State<EtudiantsPage> {
                               leading: CircleAvatar(child: Text(e.nom[0].toUpperCase())),
                               title: Text(e.nom, style: const TextStyle(fontWeight: FontWeight.bold)),
                               subtitle: Text(
-                                'CIN : ${e.cin}\nNé(e) le : ${e.dateNaissance}'
-                                '${e.annee != null ? "\nAnnée ${e.annee}" : ""}'
+                                'CIN : ${e.cin}'
+                                '\nNé(e) le : ${e.dateNaissance ?? "—"}'
+                                // FIX: affichage anneePremiereInscription (vraie année)
+                                '${e.anneePremiereInscription != null ? "\nInscrit en : ${e.anneePremiereInscription}" : ""}'
+                                '${e.email != null ? "\nEmail : ${e.email}" : ""}'
                                 '\nDépt : ${_deptName(e.departementId)}',
                               ),
                               isThreeLine: true,
@@ -271,11 +274,14 @@ class _DepartementsPageState extends State<DepartementsPage> {
                           return Card(
                             margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                             child: ListTile(
+                              // FIX: plus de d.code (n'existe pas dans le backend)
+                              // On utilise la première lettre du nom
                               leading: CircleAvatar(
-                                child: Text(d.code?.isNotEmpty == true ? d.code![0] : '?'),
+                                child: Text(d.nom.isNotEmpty ? d.nom[0].toUpperCase() : '?'),
                               ),
                               title: Text(d.nom, style: const TextStyle(fontWeight: FontWeight.bold)),
-                              subtitle: Text('Code : ${d.code ?? "—"}'),
+                              // FIX: suppression de "Code : ${d.code}"
+                              subtitle: Text('ID : ${d.id}'),
                               trailing: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
@@ -307,10 +313,12 @@ class EtudiantForm extends StatefulWidget {
 }
 
 class _EtudiantFormState extends State<EtudiantForm> {
-  final _cin  = TextEditingController();
-  final _nom  = TextEditingController();
-  final _date = TextEditingController();
-  int _annee = 1;
+  final _cin   = TextEditingController();
+  final _nom   = TextEditingController();
+  final _date  = TextEditingController();
+  final _email = TextEditingController();
+  // FIX: anneePremiereInscription = vraie année (ex: 2022), pas 1/2/3
+  int _annee = DateTime.now().year;
   int? _deptId;
   bool _saving = false;
 
@@ -319,10 +327,12 @@ class _EtudiantFormState extends State<EtudiantForm> {
     super.initState();
     final e = widget.etudiant;
     if (e != null) {
-      _cin.text  = e.cin;
-      _nom.text  = e.nom;
-      _date.text = e.dateNaissance;
-      _annee  = e.annee ?? 1;
+      _cin.text   = e.cin;
+      _nom.text   = e.nom;
+      _date.text  = e.dateNaissance ?? '';
+      _email.text = e.email ?? '';
+      // FIX: lecture du bon champ
+      _annee  = e.anneePremiereInscription ?? DateTime.now().year;
       _deptId = e.departementId;
     }
   }
@@ -330,12 +340,14 @@ class _EtudiantFormState extends State<EtudiantForm> {
   Future<void> _save() async {
     if (_nom.text.trim().isEmpty || _cin.text.trim().isEmpty) return;
     setState(() => _saving = true);
+    // FIX: construction avec les bons champs alignés sur le DTO backend
     final dto = Etudiant(
       id: widget.etudiant?.id ?? 0,
       cin: _cin.text.trim(),
       nom: _nom.text.trim(),
-      dateNaissance: _date.text,
-      annee: _annee,
+      dateNaissance: _date.text.isEmpty ? null : _date.text,
+      email: _email.text.trim().isEmpty ? null : _email.text.trim(),
+      anneePremiereInscription: _annee,
       departementId: _deptId,
     );
     try {
@@ -370,10 +382,16 @@ class _EtudiantFormState extends State<EtudiantForm> {
             const SizedBox(height: 12),
             TextField(controller: _date, decoration: const InputDecoration(labelText: 'Date naissance (AAAA-MM-JJ)', border: OutlineInputBorder())),
             const SizedBox(height: 12),
+            TextField(controller: _email, keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(labelText: 'Email', border: OutlineInputBorder())),
+            const SizedBox(height: 12),
+            // FIX: saisie de la vraie année d'inscription (ex: 2020-2030)
             DropdownButtonFormField<int>(
               value: _annee,
-              decoration: const InputDecoration(labelText: 'Année', border: OutlineInputBorder()),
-              items: [1, 2, 3].map((a) => DropdownMenuItem(value: a, child: Text('Année $a'))).toList(),
+              decoration: const InputDecoration(labelText: 'Année première inscription', border: OutlineInputBorder()),
+              items: List.generate(15, (i) => 2015 + i)
+                  .map((a) => DropdownMenuItem(value: a, child: Text('$a')))
+                  .toList(),
               onChanged: (v) => setState(() => _annee = v!),
             ),
             const SizedBox(height: 12),
@@ -412,25 +430,23 @@ class DepartementForm extends StatefulWidget {
 
 class _DepartementFormState extends State<DepartementForm> {
   final _nom  = TextEditingController();
-  final _code = TextEditingController();
   bool _saving = false;
 
   @override
   void initState() {
     super.initState();
     if (widget.departement != null) {
-      _nom.text  = widget.departement!.nom;
-      _code.text = widget.departement!.code ?? '';
+      _nom.text = widget.departement!.nom;
     }
   }
 
   Future<void> _save() async {
     if (_nom.text.trim().isEmpty) return;
     setState(() => _saving = true);
+    // FIX: Departement n'a que id et nom (plus de code)
     final dto = Departement(
       id: widget.departement?.id ?? 0,
       nom: _nom.text.trim(),
-      code: _code.text.trim().toUpperCase(),
     );
     try {
       if (widget.departement == null) await ApiService.createDepartement(dto);
@@ -458,8 +474,7 @@ class _DepartementFormState extends State<DepartementForm> {
               style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 16),
           TextField(controller: _nom, decoration: const InputDecoration(labelText: 'Nom', border: OutlineInputBorder())),
-          const SizedBox(height: 12),
-          TextField(controller: _code, decoration: const InputDecoration(labelText: 'Code', border: OutlineInputBorder())),
+          // FIX: suppression du champ "Code" — n'existe pas dans le backend
           const SizedBox(height: 20),
           SizedBox(
             width: double.infinity,

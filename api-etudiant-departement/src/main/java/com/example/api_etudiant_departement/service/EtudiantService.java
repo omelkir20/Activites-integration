@@ -4,6 +4,7 @@ import com.example.api_etudiant_departement.dto.EtudiantDTO;
 import com.example.api_etudiant_departement.entity.Etudiant;
 import com.example.api_etudiant_departement.mapper.EtudiantMapper;
 import com.example.api_etudiant_departement.repository.EtudiantRepository;
+import com.example.api_etudiant_departement.repository.DepartementRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
@@ -16,7 +17,7 @@ public class EtudiantService {
 
     private final EtudiantRepository repo;
     private final EtudiantMapper mapper;
-
+    private final DepartementRepository departementRepo;
     @Cacheable(value = "etudiants")
     public List<EtudiantDTO> findAll() {
         return repo.findAll().stream().map(mapper::toDTO).toList();
@@ -43,6 +44,12 @@ public class EtudiantService {
         e.setDateNaissance(dto.getDateNaissance());
         e.setEmail(dto.getEmail());
         e.setAnneePremiereInscription(dto.getAnneePremiereInscription());
+        if (dto.getDepartementId() != null) {
+            departementRepo.findById(dto.getDepartementId())
+                    .ifPresent(e::setDepartement);
+        } else {
+            e.setDepartement(null);
+        }
         return mapper.toDTO(repo.save(e));
     }
 

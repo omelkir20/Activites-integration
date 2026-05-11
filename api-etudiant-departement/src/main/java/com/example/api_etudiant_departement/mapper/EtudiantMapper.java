@@ -2,11 +2,14 @@ package com.example.api_etudiant_departement.mapper;
 
 import com.example.api_etudiant_departement.dto.EtudiantDTO;
 import com.example.api_etudiant_departement.entity.Etudiant;
+import com.example.api_etudiant_departement.repository.DepartementRepository;
 import org.springframework.stereotype.Component;
+import lombok.RequiredArgsConstructor;
 
 @Component
+@RequiredArgsConstructor
 public class EtudiantMapper {
-
+    private final DepartementRepository departementRepo;
     public EtudiantDTO toDTO(Etudiant e) {
         EtudiantDTO dto = new EtudiantDTO();
         dto.setId(e.getId());

@@ -349,11 +349,12 @@
 
     async function loadDepartements() {
       try {
-        // FIX : URL avec la constante API
         const res = await fetch(API + '/api/departements');
         if (!res.ok) throw new Error('Erreur réseau');
         departements = await res.json();
-        renderDepartements();
+        // FIX : ne pas appeler renderDepartements() ici — les étudiants ne sont
+        // pas encore chargés, donc le count serait toujours 0.
+        // renderDepartements() sera appelé après loadEtudiants() dans l'INIT.
         populateDeptSelects();
       } catch (e) {
         document.getElementById('corps-departements').innerHTML =
@@ -402,6 +403,7 @@
         closeModal('overlay-dept');
         toast(id ? 'Département mis à jour ✓' : 'Département créé ✓');
         await loadDepartements();
+        renderDepartements(); // FIX: recalcule les counts avec etudiants[] déjà chargé
         renderEtudiants();
       } catch (e) { toast(e.message, true); }
     }
@@ -414,14 +416,17 @@
         if (!res.ok) throw new Error('Erreur serveur');
         toast('Département supprimé');
         await loadDepartements();
+        renderDepartements(); // FIX: recalcule les counts avec etudiants[] déjà chargé
         renderEtudiants();
       } catch (e) { toast(e.message, true); }
     }
 
     // ── INIT ──
     (async () => {
-      await loadDepartements();
-      await loadEtudiants();
+      // FIX : chargement parallèle, puis renderDepartements() après que etudiants[] soit rempli
+      await Promise.all([loadDepartements(), loadEtudiants()]);
+      // count par département correct car etudiants[] est déjà chargé
+      renderDepartements();
     })();
 </script>
 </body>
